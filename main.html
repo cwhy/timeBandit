@@ -1,0 +1,88 @@
+<html>
+<head>
+	<title>Time bandit</title>
+	<link rel="stylesheet" href="style.css" />
+	<script src="underscore-min.js" type="text/javascript"></script>
+</head>
+<body>
+	<div id="time-bar"></div>
+	<ul id="choice-board">
+		<li class="choices texts-noselect" id="p">p</li>
+		<li class="choices texts-noselect" id="b">b</li>
+		<li class="choices texts-noselect" id="d">d</li>
+		<li class="choices texts-noselect" id="q">q</li>
+	</ul>
+</body>
+<script>
+var time = 0;
+var maxTime = 10 * 1000; // 20 seconds
+
+function isDead(){
+	clearInterval(loop);
+}
+
+function update(){
+  var ratio = time/maxTime
+  var redPerc = ratio*100;
+  document.getElementById('time-bar').style.height = redPerc +'%';
+  document.getElementById('time-bar').style.opacity = 0.8 - (1 - ratio)*0.6;
+  if (ratio >= 1) isDead();
+}
+
+function scale(vector, factor){
+	return _.map(vector, function (x){return x*factor});
+}
+
+var opts = ['p', 'b', 'd', 'q'];
+var optKeys = {};
+optKeys[112] = 'p';
+optKeys[98] = 'b';
+optKeys[100] = 'd';
+optKeys[113] = 'q';
+var models = {};
+models['p'] = [-1, -1, 2, 3];
+models['b'] = [-2, -1, 1, 2, 9];
+models['d'] = [-3, 1, 1, 4, 4];
+models['q'] = [-1, -1, 1, 2, 3];
+console.log(models);
+
+var scaleFactor = 300;
+
+function modelUpdate(model){
+  console.log(maxTime);
+  var u = _.sample(model);
+  maxTime += u;
+  console.log(maxTime);
+  update();
+}
+
+function assignModel(opt){
+	var optDOM = document.getElementById(opt); 
+	var model = scale(models[opt], scaleFactor);
+	optUpdate = _.partial(modelUpdate, model);
+	optDOM.addEventListener("click", optUpdate, false);
+}
+_.each(opts, assignModel);
+
+function keyUpdate(e){
+	var code = e.keyCode;
+	if (_.has(optKeys, code)){
+		var model = scale(models[optKeys[code]], scaleFactor);
+		modelUpdate(model);
+	}
+}
+window.addEventListener("keypress", keyUpdate);
+
+
+function every10ms(){
+	time += 10;
+	maxTime -= 10;
+	update();
+	if(time % 100 === 0){
+		// console.log("tick"+time);
+	}
+}
+loop = setInterval(every10ms, 10);
+
+</script>
+</html>

@@ -1,0 +1,57 @@
+body{
+	margin:0;
+}
+
+#time-bar{
+	position: fixed;
+	z-index: 100;
+	height: 100%;
+	width: 100%;
+	background: #FF4D00;
+	opacity: 0.5;
+	pointer-events: none;
+}
+
+#choice-board{
+	padding: 0;
+	margin:0 auto;
+	position: relative;
+	height: 80%;
+	top: 10%;
+	width: 88%;
+	display: flex;
+	justify-content: space-around;
+	align-items: center;
+	list-style: none;
+}
+.choices{
+	color: #fff;
+	width: 20vw;
+	height:20vw;
+	text-align: center;
+	font-size: 16vw;
+	font-family: "Avant Garde", "Courier";
+	font-weight: bold;
+	float: left;
+	margin: auto;
+	border-radius: 50%;
+	background: #777;
+	cursor: pointer;
+
+	box-shadow: 0 1px 0 #ccc,
+	0 10px 10px rgba(0,0,0,.15);
+}
+
+.choices:active{
+	box-shadow: 0 1px 0 #ccc,
+	0 20px 20px rgba(0,0,0,.15);
+}
+.texts-noselect {
+	-webkit-touch-callout: none; /* iOS Safari */
+	-webkit-user-select: none;   /* Chrome/Safari/Opera */
+	-khtml-user-select: none;    /* Konqueror */
+	-moz-user-select: none;      /* Firefox */
+	-ms-user-select: none;       /* IE/Edge */
+	user-select: none;           /* non-prefixed version, currently
+	not supported by any browser */
+}
