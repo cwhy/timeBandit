@@ -16,21 +16,24 @@
 <script>
 // var c1 = document.querySelector('.cooldown');
 function animateCD(canvas, callback){
+	this.a = 9;
 	var cs = getComputedStyle(canvas);
 	canvas.width = parseInt(cs.getPropertyValue('width'), 10);
 	canvas.height = parseInt(cs.getPropertyValue('height'), 10);
 	var	r0y = canvas.height / 2,
 		r0x = canvas.width / 2,
 		radius = canvas.height / 2,
-		startAngle = 3.5*Math.PI,
+		startAngle = 1.5*Math.PI,
 		progress = startAngle,
-		endAngle = 1.5*Math.PI,
+		endAngle = 3.5*Math.PI,
+		direction = true, // clockwise
 		speed = 0.02;
 
 	var ctx = canvas.getContext('2d');
+	this.ctx = ctx;
 	ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
 
-	function pie(from, to, direction){
+	function pie(from, to){
 		ctx.beginPath();
 		ctx.moveTo(r0x, r0y);
 		ctx.arc(r0x, r0y, radius, from, to, direction);
@@ -38,21 +41,23 @@ function animateCD(canvas, callback){
 		ctx.fill();
 	}
 
-	function draw(){
-		progress -= speed;
-		if( progress >= endAngle){
-			ctx.clearRect(0, 0, canvas.width, canvas.height);
-			pie(startAngle, progress, false);
-		}else{
-			clearInterval(inte);
-			if(_.isFunction(callback)){
+	this.animate = function(){
+		function draw(){
+			progress += speed;
+			if( progress <= endAngle){
 				ctx.clearRect(0, 0, canvas.width, canvas.height);
-				callback();
+				pie(startAngle, progress);
+			}else{
+				clearInterval(inte);
+				if(_.isFunction(callback)){
+					ctx.clearRect(0, 0, canvas.width, canvas.height);
+					progress = startAngle;
+					callback();
+				}
 			}
 		}
+		var inte = setInterval(draw, 10);
 	}
-
-	var inte = setInterval(draw, 10);
 }
 // animateCD(c1);
 </script>
@@ -77,11 +82,13 @@ function scale(vector, factor){
 }
 
 var opts = ['p', 'b', 'd', 'q'];
-var optKeys = {};
-optKeys[112] = 'p';
-optKeys[98] = 'b';
-optKeys[100] = 'd';
-optKeys[113] = 'q';
+var optKeyArr = [80, 66, 68, 81];
+// var optKeys = {};
+var optKeys = _.object(optKeyArr, opts);
+// optKeys[112] = 'p';
+// optKeys[98] = 'b';
+// optKeys[100] = 'd';
+// optKeys[113] = 'q';
 var models = {};
 models['p'] = [-1, -1, 2, 3];
 models['b'] = [-2, -1, 1, 2, 9];
@@ -96,45 +103,63 @@ function Option(opt){
 	var optDOM = document.getElementById(opt);
 	var model = scale(models[opt], scaleFactor);
 	var onCD = false;
-	this.timeUpdate = function(){
-		if (!onCD){
+	var _this = this;
+	function timeUpdate(){
 			console.log(maxTime);
 			var u = _.sample(model);
 			maxTime += u;
 			console.log(maxTime);
 			update();
 			cooldown();
+	}
+	this.trigger = function(){
+		if (onCD){
+			_this.animateCD.ctx.fillStyle =  "rgba(255, 255, 255, 0.6)";
+		} else {
+			optDOM.classList.add("pressed");
 		}
 	}
-	// this.animateCD = new animateCD(canvasDOM, activate);
+	this.untrigger = function(){
+		if (onCD){
+			_this.animateCD.ctx.fillStyle =  "rgba(255, 255, 255, 0.5)";
+		} else {
+			optDOM.classList.remove("pressed");
+			timeUpdate()
+		}
+	}
+	var canvasDOM = optDOM.getElementsByTagName("canvas")[0];
+	function recoverCD(){
+		optDOM.style.cursor = "pointer";
+		optDOM.classList.remove("disabled");
+		onCD = false;
+	};
+	this.animateCD = new animateCD(canvasDOM, recoverCD);
 	function cooldown(){
-		optDOM.style.cursor = "not-allowed";
 		optDOM.classList.add("disabled");
 		onCD = true;
-		var activate = function(){
-			optDOM.style.cursor = "pointer";
-			optDOM.classList.remove("disabled");
-			onCD = false;
-		};
-		var canvasDOM = optDOM.getElementsByTagName("canvas")[0];
-		animateCD(canvasDOM, activate);
+		_this.animateCD.animate();
 	}
-	optDOM.addEventListener("click", this.timeUpdate, false);
+	optDOM.addEventListener("mousedown", this.trigger, false);
+	optDOM.addEventListener("mouseup", this.untrigger, false);
 }
 
 var New = function(fn, arg){return new fn(arg);}
 var options = _.object(opts, _.map(opts, _.partial(New, Option)));
 
-function keyUpdate(e){
+function keyDown(e, down){
 	var code = e.keyCode;
 	if (_.has(optKeys, code)){
 		// var model = scale(models[optKeys[code]], scaleFactor);
-		options[optKeys[code]].timeUpdate();
+		if (down){
+			options[optKeys[code]].trigger();
+		} else {
+			options[optKeys[code]].untrigger();
+		}
 		// modelUpdate(model);
 	}
 }
-
-window.addEventListener("keypress", keyUpdate);
+window.addEventListener("keydown", _.partial(keyDown, _, true));
+window.addEventListener("keyup", _.partial(keyDown, _, false));
 
 function every10ms(){
 	time += 10;

@@ -43,12 +43,16 @@ body{
 	position: relative;
 }
 
-.choices:not(.disabled):hover{
+.choices.pressed:not(.disabled){
 	box-shadow: 0 1px 0 #ccc,
 	0 12px 12px rgba(0,0,0,.15);
 }
 
-.choices:not(.disabled):active{
+.choices.disabled{
+	cursor: not-allowed;
+}
+
+.choices.pressed:not(.disabled){
 	box-shadow: 0 1px 0 #ccc,
 	0 5px 5px rgba(0,0,0,.15);
 }
