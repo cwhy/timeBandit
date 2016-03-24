@@ -6,6 +6,12 @@
 </head>
 <body>
 	<div id="time-bar"></div>
+	<div id="score-bar"></div>
+	<div id="curtain"></div>
+	<div id="result-board">
+		<div id="result-score"></div>
+		<div id="result"></div>
+	</div>
 	<ul id="choice-board">
 		<li class="choices texts-noselect" id="p">p<canvas class="cooldown"></canvas></li>
 		<li class="choices texts-noselect" id="b">b<canvas class="cooldown"></canvas></li>
@@ -16,6 +22,7 @@
 <script>
 // var c1 = document.querySelector('.cooldown');
 function animateCD(canvas, callback){
+	var _this = this;
 	this.a = 9;
 	var cs = getComputedStyle(canvas);
 	canvas.width = parseInt(cs.getPropertyValue('width'), 10);
@@ -27,7 +34,7 @@ function animateCD(canvas, callback){
 		progress = startAngle,
 		endAngle = 3.5*Math.PI,
 		direction = true, // clockwise
-		speed = 0.02;
+		speed = 0.05;
 
 	var ctx = canvas.getContext('2d');
 	this.ctx = ctx;
@@ -41,40 +48,92 @@ function animateCD(canvas, callback){
 		ctx.fill();
 	}
 
-	this.animate = function(){
-		function draw(){
-			progress += speed;
-			if( progress <= endAngle){
-				ctx.clearRect(0, 0, canvas.width, canvas.height);
-				pie(startAngle, progress);
-			}else{
-				clearInterval(inte);
-				if(_.isFunction(callback)){
-					ctx.clearRect(0, 0, canvas.width, canvas.height);
-					progress = startAngle;
-					callback();
-				}
+	function draw(){
+		progress += speed;
+		if( progress <= endAngle){
+			ctx.clearRect(0, 0, canvas.width, canvas.height);
+			pie(startAngle, progress);
+		}else{
+			_this.stop()
+			if(_.isFunction(callback)){
+				callback();
 			}
 		}
-		var inte = setInterval(draw, 10);
+	}
+	var aloop;
+	this.animate = function(){
+		aloop = setInterval(draw, 10);
+	}
+	this.stop = function(){
+		clearInterval(aloop);
+		ctx.clearRect(0, 0, canvas.width, canvas.height);
+		progress = startAngle;
 	}
 }
 // animateCD(c1);
 </script>
 <script>
 var time = 0;
-var maxTime = 100 * 1000; // 20 seconds
+var maxTime0 = 10 * 1000; // 20 seconds
+var maxTime = maxTime0;
+var score = 0;
+var passScore = 7 * 1000;
 
-function isDead(){
-	clearInterval(loop);
+function end(){
+	clearInterval(gloop);
+	window.removeEventListener("keydown", keyDown);
+	window.removeEventListener("keyup", keyUp);
+	_.each(options, function(obj){
+		obj.deactivate()});
+	document.getElementById("curtain").style.cursor = "wait";
+	document.getElementById("result-board").style.cursor = "wait";
+
+	document.getElementById('curtain').style.display = "block";
+	var sRatio = score/passScore,
+		scPerc = (sRatio*100).toFixed(2);
+	document.getElementById('result-score').innerHTML = scPerc + "%";
+	document.getElementById('result-board').style.display = "block";
+}
+function lose(){
+	document.getElementById('result-board').classList.remove("win");
+	document.getElementById('result-board').classList.add("lose");
+	document.getElementById('result').innerHTML = "You Lose";
+	end();
+	setTimeout(function(){
+		document.getElementById("curtain").style.cursor = "pointer";
+		document.getElementById("result-board").style.cursor = "pointer";
+		window.addEventListener("keydown", restart);
+		window.addEventListener("mousedown", restart);
+	}, 2000);
+}
+function win(){
+	document.getElementById('result-board').classList.remove("lose");
+	document.getElementById('result-board').classList.add("win");
+	document.getElementById('result').innerHTML = "You Win";
+	end();
+	setTimeout(function(){
+		document.getElementById("curtain").style.cursor = "pointer";
+		document.getElementById("result-board").style.cursor = "pointer";
+		window.addEventListener("keydown", restart);
+		window.addEventListener("mousedown", restart);
+	}, 2000);
 }
 
 function update(){
-	var ratio = time/maxTime,
-		redPerc = ratio*100;
-	document.getElementById('time-bar').style.height = redPerc +'%';
-	document.getElementById('time-bar').style.opacity = 0.8 - (1 - ratio)*0.6;
-	if (ratio >= 1) isDead();
+	var tRatio = time/maxTime,
+		redPerc = (1 - tRatio)*100,
+	    sRatio = score/passScore,
+		scPerc = sRatio*100;
+	document.getElementById('time-bar').style.width = redPerc +'%';
+	document.getElementById('time-bar').style.opacity = 0.6 + sRatio*0.4;
+	document.getElementById('score-bar').style.height = scPerc +'%';
+	document.getElementById('score-bar').style.opacity = 0.8 - (1 - sRatio)*0.6;
+
+	if (sRatio >= 1){
+		win();
+	} else if (tRatio >= 1){
+		lose();
+	}
 }
 
 function scale(vector, factor){
@@ -90,7 +149,7 @@ var optKeys = _.object(optKeyArr, opts);
 // optKeys[100] = 'd';
 // optKeys[113] = 'q';
 var models = {};
-models['p'] = [-1, -1, 2, 3];
+models['p'] = [-1, -1, 2, -2];
 models['b'] = [-2, -1, 1, 2, 9];
 models['d'] = [-3, 1, 1, 4, 4];
 models['q'] = [-1, -1, 1, 2, 3];
@@ -99,7 +158,6 @@ console.log(models);
 var scaleFactor = 300;
 
 function Option(opt){
-	this.opt = opt;
 	var optDOM = document.getElementById(opt);
 	var model = scale(models[opt], scaleFactor);
 	var onCD = false;
@@ -108,11 +166,16 @@ function Option(opt){
 			console.log(maxTime);
 			var u = _.sample(model);
 			maxTime += u;
+			score += u;
 			console.log(maxTime);
 			update();
 			cooldown();
 	}
 	this.trigger = function(){
+		if (onWait){
+			onWait = false;
+			startLoop();
+		}
 		if (onCD){
 			_this.animateCD.ctx.fillStyle =  "rgba(255, 255, 255, 0.6)";
 		} else {
@@ -128,25 +191,30 @@ function Option(opt){
 		}
 	}
 	var canvasDOM = optDOM.getElementsByTagName("canvas")[0];
-	function recoverCD(){
-		optDOM.style.cursor = "pointer";
+	this.animateCD = new animateCD(canvasDOM, function(){
 		optDOM.classList.remove("disabled");
 		onCD = false;
-	};
-	this.animateCD = new animateCD(canvasDOM, recoverCD);
+	});
 	function cooldown(){
 		optDOM.classList.add("disabled");
 		onCD = true;
 		_this.animateCD.animate();
 	}
-	optDOM.addEventListener("mousedown", this.trigger, false);
-	optDOM.addEventListener("mouseup", this.untrigger, false);
+	this.activate = function(){
+		optDOM.addEventListener("mousedown", _this.trigger, false);
+		optDOM.addEventListener("mouseup", _this.untrigger, false);
+	}
+	this.deactivate = function(){
+		optDOM.removeEventListener("mousedown", _this.trigger, false);
+		optDOM.removeEventListener("mouseup", _this.untrigger, false);
+	}
+	this.activate();
 }
 
 var New = function(fn, arg){return new fn(arg);}
 var options = _.object(opts, _.map(opts, _.partial(New, Option)));
 
-function keyDown(e, down){
+function keyPress(e, down){
 	var code = e.keyCode;
 	if (_.has(optKeys, code)){
 		// var model = scale(models[optKeys[code]], scaleFactor);
@@ -158,18 +226,47 @@ function keyDown(e, down){
 		// modelUpdate(model);
 	}
 }
-window.addEventListener("keydown", _.partial(keyDown, _, true));
-window.addEventListener("keyup", _.partial(keyDown, _, false));
+
+var keyDown = _.partial(keyPress, _, true);
+var keyUp = _.partial(keyPress, _, false);
 
 function every10ms(){
 	time += 10;
-	maxTime -= 10;
+	maxTime -= 2;
 	update();
 	if(time % 100 === 0){
 		// console.log("tick"+time);
 	}
 }
-loop = setInterval(every10ms, 10);
+function restart(e){
+	var code = e.keyCode;
+	if (!_.has(optKeys, code)){
+		start();
+	}
+}
+
+var onWait, gloop;
+function start(){
+	window.removeEventListener("keydown", restart);
+	window.removeEventListener("mousedown", restart);
+	window.addEventListener("keydown", keyDown);
+	window.addEventListener("keyup", keyUp);
+	maxTime = maxTime0;
+	_.each(options, function(obj){
+		obj.activate()});
+	console.log(maxTime);
+	time = 0;
+	score = 0;
+	document.getElementById('curtain').style.display = "none";
+	document.getElementById('result-board').style.display = "none";
+	update();
+	onWait = true;
+}
+
+function startLoop(){
+	gloop = setInterval(every10ms, 10);
+}
+start();
 
 </script>
 </html>
