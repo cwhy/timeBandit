@@ -40,11 +40,17 @@ body{
 
 	box-shadow: 0 1px 0 #ccc,
 	0 10px 10px rgba(0,0,0,.15);
+	position: relative;
 }
 
-.choices:active{
+.choices:not(.disabled):hover{
 	box-shadow: 0 1px 0 #ccc,
-	0 20px 20px rgba(0,0,0,.15);
+	0 12px 12px rgba(0,0,0,.15);
+}
+
+.choices:not(.disabled):active{
+	box-shadow: 0 1px 0 #ccc,
+	0 5px 5px rgba(0,0,0,.15);
 }
 .texts-noselect {
 	-webkit-touch-callout: none; /* iOS Safari */
@@ -54,4 +60,11 @@ body{
 	-ms-user-select: none;       /* IE/Edge */
 	user-select: none;           /* non-prefixed version, currently
 	not supported by any browser */
+}
+.choices canvas{
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
 }

@@ -7,26 +7,69 @@
 <body>
 	<div id="time-bar"></div>
 	<ul id="choice-board">
-		<li class="choices texts-noselect" id="p">p</li>
-		<li class="choices texts-noselect" id="b">b</li>
-		<li class="choices texts-noselect" id="d">d</li>
-		<li class="choices texts-noselect" id="q">q</li>
+		<li class="choices texts-noselect" id="p">p<canvas class="cooldown"></canvas></li>
+		<li class="choices texts-noselect" id="b">b<canvas class="cooldown"></canvas></li>
+		<li class="choices texts-noselect" id="d">d<canvas class="cooldown"></canvas></li>
+		<li class="choices texts-noselect" id="q">q<canvas class="cooldown"></canvas></li>
 	</ul>
 </body>
 <script>
+// var c1 = document.querySelector('.cooldown');
+function animateCD(canvas, callback){
+	var cs = getComputedStyle(canvas);
+	canvas.width = parseInt(cs.getPropertyValue('width'), 10);
+	canvas.height = parseInt(cs.getPropertyValue('height'), 10);
+	var	r0y = canvas.height / 2,
+		r0x = canvas.width / 2,
+		radius = canvas.height / 2,
+		startAngle = 3.5*Math.PI,
+		progress = startAngle,
+		endAngle = 1.5*Math.PI,
+		speed = 0.02;
+
+	var ctx = canvas.getContext('2d');
+	ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
+
+	function pie(from, to, direction){
+		ctx.beginPath();
+		ctx.moveTo(r0x, r0y);
+		ctx.arc(r0x, r0y, radius, from, to, direction);
+		ctx.closePath();
+		ctx.fill();
+	}
+
+	function draw(){
+		progress -= speed;
+		if( progress >= endAngle){
+			ctx.clearRect(0, 0, canvas.width, canvas.height);
+			pie(startAngle, progress, false);
+		}else{
+			clearInterval(inte);
+			if(_.isFunction(callback)){
+				ctx.clearRect(0, 0, canvas.width, canvas.height);
+				callback();
+			}
+		}
+	}
+
+	var inte = setInterval(draw, 10);
+}
+// animateCD(c1);
+</script>
+<script>
 var time = 0;
-var maxTime = 10 * 1000; // 20 seconds
+var maxTime = 100 * 1000; // 20 seconds
 
 function isDead(){
 	clearInterval(loop);
 }
 
 function update(){
-  var ratio = time/maxTime
-  var redPerc = ratio*100;
-  document.getElementById('time-bar').style.height = redPerc +'%';
-  document.getElementById('time-bar').style.opacity = 0.8 - (1 - ratio)*0.6;
-  if (ratio >= 1) isDead();
+	var ratio = time/maxTime,
+		redPerc = ratio*100;
+	document.getElementById('time-bar').style.height = redPerc +'%';
+	document.getElementById('time-bar').style.opacity = 0.8 - (1 - ratio)*0.6;
+	if (ratio >= 1) isDead();
 }
 
 function scale(vector, factor){
@@ -48,31 +91,50 @@ console.log(models);
 
 var scaleFactor = 300;
 
-function modelUpdate(model){
-  console.log(maxTime);
-  var u = _.sample(model);
-  maxTime += u;
-  console.log(maxTime);
-  update();
+function Option(opt){
+	this.opt = opt;
+	var optDOM = document.getElementById(opt);
+	var model = scale(models[opt], scaleFactor);
+	var onCD = false;
+	this.timeUpdate = function(){
+		if (!onCD){
+			console.log(maxTime);
+			var u = _.sample(model);
+			maxTime += u;
+			console.log(maxTime);
+			update();
+			cooldown();
+		}
+	}
+	// this.animateCD = new animateCD(canvasDOM, activate);
+	function cooldown(){
+		optDOM.style.cursor = "not-allowed";
+		optDOM.classList.add("disabled");
+		onCD = true;
+		var activate = function(){
+			optDOM.style.cursor = "pointer";
+			optDOM.classList.remove("disabled");
+			onCD = false;
+		};
+		var canvasDOM = optDOM.getElementsByTagName("canvas")[0];
+		animateCD(canvasDOM, activate);
+	}
+	optDOM.addEventListener("click", this.timeUpdate, false);
 }
 
-function assignModel(opt){
-	var optDOM = document.getElementById(opt); 
-	var model = scale(models[opt], scaleFactor);
-	optUpdate = _.partial(modelUpdate, model);
-	optDOM.addEventListener("click", optUpdate, false);
-}
-_.each(opts, assignModel);
+var New = function(fn, arg){return new fn(arg);}
+var options = _.object(opts, _.map(opts, _.partial(New, Option)));
 
 function keyUpdate(e){
 	var code = e.keyCode;
 	if (_.has(optKeys, code)){
-		var model = scale(models[optKeys[code]], scaleFactor);
-		modelUpdate(model);
+		// var model = scale(models[optKeys[code]], scaleFactor);
+		options[optKeys[code]].timeUpdate();
+		// modelUpdate(model);
 	}
 }
-window.addEventListener("keypress", keyUpdate);
 
+window.addEventListener("keypress", keyUpdate);
 
 function every10ms(){
 	time += 10;
