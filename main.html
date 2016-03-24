@@ -28,13 +28,13 @@ function animateCD(canvas, callback){
 	canvas.width = parseInt(cs.getPropertyValue('width'), 10);
 	canvas.height = parseInt(cs.getPropertyValue('height'), 10);
 	var	r0y = canvas.height / 2,
-		r0x = canvas.width / 2,
+	r0x = canvas.width / 2,
 		radius = canvas.height / 2,
 		startAngle = 1.5*Math.PI,
-		progress = startAngle,
-		endAngle = 3.5*Math.PI,
-		direction = true, // clockwise
-		speed = 0.05;
+			progress = startAngle,
+			endAngle = 3.5*Math.PI,
+				direction = true, // clockwise
+				speed = 0.05;
 
 	var ctx = canvas.getContext('2d');
 	this.ctx = ctx;
@@ -55,9 +55,9 @@ function animateCD(canvas, callback){
 			pie(startAngle, progress);
 		}else{
 			_this.stop()
-			if(_.isFunction(callback)){
-				callback();
-			}
+				if(_.isFunction(callback)){
+					callback();
+				}
 		}
 	}
 	var aloop;
@@ -71,6 +71,17 @@ function animateCD(canvas, callback){
 	}
 }
 // animateCD(c1);
+</script>
+<script>
+function shuffle(a) {
+	var j, x, i;
+	for (i = a.length; i; i -= 1) {
+		j = Math.floor(Math.random() * i);
+		x = a[i - 1];
+		a[i - 1] = a[j];
+		a[j] = x;
+	}
+}
 </script>
 <script>
 var time = 0;
@@ -90,7 +101,7 @@ function end(){
 
 	document.getElementById('curtain').style.display = "block";
 	var sRatio = score/passScore,
-		scPerc = (sRatio*100).toFixed(2);
+	scPerc = (sRatio*100).toFixed(2);
 	document.getElementById('result-score').innerHTML = scPerc + "%";
 	document.getElementById('result-board').style.display = "block";
 }
@@ -121,8 +132,8 @@ function win(){
 
 function update(){
 	var tRatio = time/maxTime,
-		redPerc = (1 - tRatio)*100,
-	    sRatio = score/passScore,
+	redPerc = (1 - tRatio)*100,
+	sRatio = score/passScore,
 		scPerc = sRatio*100;
 	document.getElementById('time-bar').style.width = redPerc +'%';
 	document.getElementById('time-bar').style.opacity = 0.6 + sRatio*0.4;
@@ -148,11 +159,17 @@ var optKeys = _.object(optKeyArr, opts);
 // optKeys[98] = 'b';
 // optKeys[100] = 'd';
 // optKeys[113] = 'q';
-var models = {};
-models['p'] = [-1, -1, 2, -2];
-models['b'] = [-2, -1, 1, 2, 9];
-models['d'] = [-3, 1, 1, 4, 4];
-models['q'] = [-1, -1, 1, 2, 3];
+// var models = {};
+// models['p'] = [-1, -1, 2, -2];
+// models['b'] = [-2, -1, 1, 2, 9];
+// models['d'] = [-3, 1, 1, 4, 4];
+// models['q'] = [-1, -1, 1, 2, 3];
+modelArr = [[-1, -1, 2, -2, -1, -2],
+			[-2, -1, 1, 2, 6, -1, 1, -2],
+			[-3, 1, 1, 4, 4, 2, 3],
+			[-1, -1, 1, 2, 3, 1, 2, -1, 2, 1]];
+
+var models = _.object(opts, modelArr);
 console.log(models);
 
 var scaleFactor = 300;
@@ -163,13 +180,13 @@ function Option(opt){
 	var onCD = false;
 	var _this = this;
 	function timeUpdate(){
-			console.log(maxTime);
-			var u = _.sample(model);
-			maxTime += u;
-			score += u;
-			console.log(maxTime);
-			update();
-			cooldown();
+		console.log(maxTime);
+		var u = _.sample(model);
+		maxTime += u;
+		score = Math.max(score + u, 0);
+		console.log(maxTime);
+		update();
+		cooldown();
 	}
 	this.trigger = function(){
 		if (onWait){
@@ -260,6 +277,8 @@ function start(){
 	document.getElementById('curtain').style.display = "none";
 	document.getElementById('result-board').style.display = "none";
 	update();
+	shuffle(modelArr)
+	models = _.object(opts, modelArr);
 	onWait = true;
 }
 
