@@ -15,7 +15,7 @@ body{
 #time-bar{
 	background: #FF4D00;
 	opacity: 0.6;
-	height: 2px;
+	height: 5px;
 	position: fixed;
 	top: 0;
 	width: 100%;
